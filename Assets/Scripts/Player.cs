@@ -5,9 +5,12 @@ using System.Collections;
 public class Player : MonoBehaviour {
 
 	[Header ("Configurações")]
+ 	float speed = 4;
 	public float maxJumpHeight = 2;
 	public float minJumpHeight = 1;
 	public float timeToJumpApex = .4f;
+
+	public LayerMask enemyLayer;
 	
 	float accelerationTimeAirborne = .2f;
 	float accelerationTimeGrounded = .1f;
@@ -39,9 +42,11 @@ public class Player : MonoBehaviour {
 	
 	void Update() {
 
-		Vector2 input = new Vector2 (Input.GetAxisRaw ("Horizontal"), Input.GetAxisRaw ("Vertical"));
+		float mySpeed = speed + ( speed * (float)( transform.position.x * 0.01 ) );
+
+	
 		int wallDirX = (controller.collisions.left) ? -1 : 1;
-		float targetVelocityX = input.x * 4;
+		float targetVelocityX = mySpeed;
 		velocity.x = Mathf.SmoothDamp (velocity.x, targetVelocityX, ref velocityXSmoothing, (controller.collisions.below) ? accelerationTimeGrounded : accelerationTimeAirborne);
 
 		// pular com o teclado
@@ -57,16 +62,14 @@ public class Player : MonoBehaviour {
 		velocity.y += gravity * Time.deltaTime;
 
 		// chamo a função que movimenta de verdade levando em conta as colisões
-		controller.Move (velocity * Time.deltaTime, input);
+		controller.Move (velocity * Time.deltaTime, new Vector2(0,0) );
 
 		// caso colidir com o chao ou com o teto eu não ando em Y
 		if (controller.collisions.above || controller.collisions.below) {
 			velocity.y = 0;
 		}
 
-		if (Input.GetKeyDown (KeyCode.Space)) {
-			detectEnemy();
-		}
+		detectEnemy();
 	}
 
 	public void jump () {
@@ -82,8 +85,14 @@ public class Player : MonoBehaviour {
 	}
 
 	void detectEnemy(){
-		atackSucess = false;
-		gameControl.SendMessage( "ActivateAtackBar", 50f );
+		Vector2 initialPosition = new Vector2 (transform.position.x + 20, transform.position.y - 15);
+
+		Debug.DrawRay (initialPosition , Vector2.up * 40, Color.red);
+		RaycastHit2D hit = Physics2D.Raycast(initialPosition, Vector2.up, 40,enemyLayer);
+		if ( hit ) {
+			atackSucess = false;
+			gameControl.SendMessage( "ActivateAtackBar", 50f );
+		}
 	}
 
 	public void setAtackSucess( bool temp ) {
@@ -97,10 +106,12 @@ public class Player : MonoBehaviour {
 			gameControl.SendMessage( "InativeAtackBar" );
 
 			if ( atackSucess ) {
-//				mato o inimigo
+				// mato o inimigo
 				Destroy( hit.collider.gameObject );
 			} else {
 				// levo dano
+				gameControl.SendMessage( "ApplyDamage" );
+				Destroy( hit.collider.gameObject );
 			}
 		}
 	}

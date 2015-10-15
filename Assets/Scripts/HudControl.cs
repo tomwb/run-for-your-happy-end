@@ -1,12 +1,14 @@
 ﻿using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
 
 public class HudControl : MonoBehaviour {
+
+	public int lifes = 3;
 
 	// arrow
 	bool activeArrow = false;
 	int arrowDirection = 1;
-	float arrowVelocity = 250;
 
 	float width = 0;
 
@@ -18,10 +20,14 @@ public class HudControl : MonoBehaviour {
 	RectTransform redBarRect;
 
 	GameObject player;
+	
+	List<GameObject> hudLifes = new List<GameObject>();
 
 	
 	// Use this for initialization
 	void Start () {
+		Screen.orientation = ScreenOrientation.LandscapeLeft;
+
 		player = GameObject.FindGameObjectWithTag("Player");
 
 		bar = transform.FindChild ("Canvas/AtackBar").gameObject;
@@ -32,19 +38,31 @@ public class HudControl : MonoBehaviour {
 
 		redBar = transform.FindChild ("Canvas/AtackBar/RedAtackBar").gameObject;
 		redBarRect = redBar.GetComponent<RectTransform> ();
+
+		GameObject heart = transform.FindChild ("Canvas/HudHeart").gameObject;
+
+		for (int i = 0; i < lifes; i++) {
+			GameObject instanciate = Instantiate (heart, heart.transform.position, heart.transform.rotation) as GameObject;
+			instanciate.transform.parent = transform.FindChild ("Canvas/HudHearts");
+			instanciate.SetActive (true);
+
+			RectTransform instanciateBarRect = instanciate.GetComponent<RectTransform> ();
+			instanciateBarRect.anchoredPosition = new Vector2 ( instanciateBarRect.anchoredPosition.x + ( i * 30 ), instanciateBarRect.anchoredPosition.y );
+
+			hudLifes.Add( instanciate );
+		}
 	}
 	
 	// Update is called once per frame
 	void Update () {
 		if (activeArrow) {
 			AtackBarArrowAnimation ();
-			StopArrowAnimation();
 		}
 	}
 
 	// ativa a barra de ataque
 	public void ActivateAtackBar( float dificultPercent ) {
-		if (! activeArrow) {
+		if ( ! activeArrow ) {
 			bar.SetActive (true);
 
 			// pego o tamanho da barra
@@ -55,13 +73,14 @@ public class HudControl : MonoBehaviour {
 	}
 
 	public void InativeAtackBar(){
+		activeArrow = false;
 		bar.SetActive (false);
 	}
 
 	// anima a setinha da barra de ataque
 	void AtackBarArrowAnimation() {
 		// defino a velocidade
-		float tempArrowVelocity = (arrowVelocity * Time.deltaTime) * arrowDirection;
+		float tempArrowVelocity = (width * Time.deltaTime) * arrowDirection;
 
 		// ando com a seta
 		arrowRect.anchoredPosition = new Vector2 ( arrowRect.anchoredPosition.x + tempArrowVelocity, arrowRect.anchoredPosition.y );
@@ -75,11 +94,9 @@ public class HudControl : MonoBehaviour {
 	}
 
 	// para a animação
-	void StopArrowAnimation () {
-		if (Input.GetMouseButtonDown (0)) {
-			activeArrow = false;
-			CheckArrowPosition();
-		}
+	public void StopArrowAnimation () {
+		activeArrow = false;
+		CheckArrowPosition();
 	}
 
 	// confirma se a setinha esta dentro da area vermelha
@@ -100,5 +117,18 @@ public class HudControl : MonoBehaviour {
 
 		float position = Random.Range(0, width - size);
 		redBarRect.anchoredPosition = new Vector2 ( position, redBarRect.anchoredPosition.y);
+	}
+
+	void ApplyDamage() {
+		lifes--;
+
+		if ( lifes == 0 ){
+			Application.LoadLevel ( Application.loadedLevel );
+		}
+
+		if ( hudLifes[lifes] ) {
+			hudLifes[lifes].SetActive(false);
+		}
+
 	}
 }
