@@ -1,10 +1,13 @@
 ﻿using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
+using UnityEngine.UI;
 
 public class HudControl : MonoBehaviour {
 
-	public int lifes = 3;
+	int lifes = 2;
+	public int score = 0;
+	public bool gameOver = false;
 
 	// arrow
 	bool activeArrow = false;
@@ -18,11 +21,12 @@ public class HudControl : MonoBehaviour {
 	RectTransform arrowRect;
 	GameObject redBar;
 	RectTransform redBarRect;
+	GameObject hudScore;
+	Text hudScoreText;
 
 	GameObject player;
 	
 	List<GameObject> hudLifes = new List<GameObject>();
-
 	
 	// Use this for initialization
 	void Start () {
@@ -39,6 +43,9 @@ public class HudControl : MonoBehaviour {
 		redBar = transform.FindChild ("Canvas/AtackBar/RedAtackBar").gameObject;
 		redBarRect = redBar.GetComponent<RectTransform> ();
 
+		hudScore = transform.FindChild ("Canvas/Score").gameObject;
+		hudScoreText = hudScore.GetComponent<Text> ();
+
 		GameObject heart = transform.FindChild ("Canvas/HudHeart").gameObject;
 
 		for (int i = 0; i < lifes; i++) {
@@ -47,7 +54,7 @@ public class HudControl : MonoBehaviour {
 			instanciate.SetActive (true);
 
 			RectTransform instanciateBarRect = instanciate.GetComponent<RectTransform> ();
-			instanciateBarRect.anchoredPosition = new Vector2 ( instanciateBarRect.anchoredPosition.x + ( i * 30 ), instanciateBarRect.anchoredPosition.y );
+			instanciateBarRect.anchoredPosition = new Vector2 ( instanciateBarRect.anchoredPosition.x + ( i * 50 ), instanciateBarRect.anchoredPosition.y );
 
 			hudLifes.Add( instanciate );
 		}
@@ -55,8 +62,16 @@ public class HudControl : MonoBehaviour {
 	
 	// Update is called once per frame
 	void Update () {
-		if (activeArrow) {
+		if ( ! gameOver && activeArrow) {
 			AtackBarArrowAnimation ();
+		}
+	}
+
+	void FixedUpdate ()
+	{
+		if ( ! gameOver ) {
+			score++;
+			hudScoreText.text = "score: " + score.ToString ("D8");
 		}
 	}
 
@@ -123,12 +138,26 @@ public class HudControl : MonoBehaviour {
 		lifes--;
 
 		if ( lifes == 0 ){
-			Application.LoadLevel ( Application.loadedLevel );
+			this.SendMessage("GameOver");
 		}
 
 		if ( hudLifes[lifes] ) {
 			hudLifes[lifes].SetActive(false);
 		}
 
+	}
+
+	public void GameOver(){
+		gameOver = true;
+		transform.FindChild ("Canvas").gameObject.SetActive(false);
+		transform.FindChild ("MenuCanvas").gameObject.SetActive(true);
+	}
+
+	public void reload() {
+		Application.LoadLevel ( Application.loadedLevel );
+	}
+
+	public void close() {
+		Application.Quit ();
 	}
 }

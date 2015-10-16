@@ -21,8 +21,12 @@ public class CameraFollow : MonoBehaviour {
 	float smoothVelocityY;
 	
 	bool lookAheadStopped;
+
+	GameObject gameControl;
 	
 	void Start() {
+		gameControl = GameObject.FindGameObjectWithTag("GameController");
+
 		target = GameObject.FindGameObjectWithTag("Player").transform.GetComponent<Controller2D>();
 		focusArea = new FocusArea (target.collider.bounds, focusAreaSize);
 	}
@@ -52,6 +56,11 @@ public class CameraFollow : MonoBehaviour {
 		focusPosition.y = Mathf.SmoothDamp (transform.position.y, focusPosition.y, ref smoothVelocityY, verticalSmoothTime);
 		focusPosition += Vector2.right * currentLookAheadX;
 		transform.position = (Vector3)focusPosition + Vector3.forward * -10;
+
+		// caso o player sumir da tela chamo o game over
+		if ( horizontalOffset >= 14 ) {
+			gameControl.SendMessage( "GameOver" );
+		}
 	}
 	
 	void OnDrawGizmos() {
@@ -59,6 +68,10 @@ public class CameraFollow : MonoBehaviour {
 			Gizmos.color = new Color (0, 0, 1, .5f);
 			Gizmos.DrawWireCube (focusArea.centre, focusAreaSize);
 		}
+	}
+
+	public void SetHorizontalOffSet( float newHorizontalOffset ){
+		horizontalOffset += newHorizontalOffset;
 	}
 	
 	struct FocusArea {

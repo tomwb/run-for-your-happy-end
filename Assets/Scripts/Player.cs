@@ -26,10 +26,17 @@ public class Player : MonoBehaviour {
 
 	Controller2D controller;
 	GameObject gameControl;
+	HudControl gameControlScript;
+	GameObject camera;
+
+	float XEnemyPosition;
 	
 	void Start() {
 
 		gameControl = GameObject.FindGameObjectWithTag("GameController");
+		gameControlScript = gameControl.GetComponent<HudControl>();
+
+		camera = Camera.main.gameObject;
 
 		controller = GetComponent<Controller2D> ();
 		controller.useColliderFunctions = true;
@@ -42,39 +49,47 @@ public class Player : MonoBehaviour {
 	
 	void Update() {
 
-		float mySpeed = speed + ( speed * (float)( transform.position.x * 0.01 ) );
+		if (! gameControlScript.gameOver) {
 
-	
-		int wallDirX = (controller.collisions.left) ? -1 : 1;
-		float targetVelocityX = mySpeed;
-		velocity.x = Mathf.SmoothDamp (velocity.x, targetVelocityX, ref velocityXSmoothing, (controller.collisions.below) ? accelerationTimeGrounded : accelerationTimeAirborne);
+			float mySpeed = speed + (speed * (float)(transform.position.x * 0.01));
+		
+			int wallDirX = (controller.collisions.left) ? -1 : 1;
+			float targetVelocityX = mySpeed;
+			velocity.x = Mathf.SmoothDamp (velocity.x, targetVelocityX, ref velocityXSmoothing, (controller.collisions.below) ? accelerationTimeGrounded : accelerationTimeAirborne);
 
-		// pular com o teclado
-		if (Input.GetKeyDown (KeyCode.UpArrow)) {
-			jump ();
+			// pular com o teclado
+			if (Input.GetKeyDown (KeyCode.UpArrow)) {
+				jump ();
+			}
+			// quando solto jogo a velocidade minima de pulo, para pular baixo se soltar rapido
+			if (Input.GetKeyUp (KeyCode.UpArrow)) {
+				stopJump ();
+			}
+
+			// aplico a gravidade
+			velocity.y += gravity * Time.deltaTime;
+
+			// chamo a função que movimenta de verdade levando em conta as colisões
+			controller.Move (velocity * Time.deltaTime, new Vector2 (0, 0));
+
+			// caso colidir com o chao ou com o teto eu não ando em Y
+			if (controller.collisions.above || controller.collisions.below) {
+				velocity.y = 0;
+			}
+
+			detectEnemy ();
+			InativeAtackBar ();
+
+			// caso colidir com a parede
+			if (controller.collisions.right) {
+				camera.SendMessage ("SetHorizontalOffSet", velocity.x * Time.deltaTime);
+			}
 		}
-		// quando solto jogo a velocidade minima de pulo, para pular baixo se soltar rapido
-		if (Input.GetKeyUp (KeyCode.UpArrow)) {
-			stopJump ();
-		}
-
-		// aplico a gravidade
-		velocity.y += gravity * Time.deltaTime;
-
-		// chamo a função que movimenta de verdade levando em conta as colisões
-		controller.Move (velocity * Time.deltaTime, new Vector2(0,0) );
-
-		// caso colidir com o chao ou com o teto eu não ando em Y
-		if (controller.collisions.above || controller.collisions.below) {
-			velocity.y = 0;
-		}
-
-		detectEnemy();
 	}
 
 	public void jump () {
 		// pulo normal
-		if (controller.collisions.below) {
+		if ( ! gameControlScript.gameOver && controller.collisions.below) {
 			velocity.y = maxJumpVelocity;
 		}
 	}
@@ -90,13 +105,23 @@ public class Player : MonoBehaviour {
 		Debug.DrawRay (initialPosition , Vector2.up * 40, Color.red);
 		RaycastHit2D hit = Physics2D.Raycast(initialPosition, Vector2.up, 40,enemyLayer);
 		if ( hit ) {
+
+			float life = hit.collider.gameObject.GetComponent<Enemy>().life;
+
 			atackSucess = false;
-			gameControl.SendMessage( "ActivateAtackBar", 50f );
+			gameControl.SendMessage( "ActivateAtackBar", life );
+			XEnemyPosition = transform.position.x + 20;
 		}
 	}
 
 	public void setAtackSucess( bool temp ) {
 		atackSucess = temp;
+	}
+
+	public void InativeAtackBar(){
+		if ( XEnemyPosition <= transform.position.x ) {
+			gameControl.SendMessage( "InativeAtackBar" );
+		}
 	}
 
 	public void RaycastOnCollisionEnter( RaycastHit2D hit ){
